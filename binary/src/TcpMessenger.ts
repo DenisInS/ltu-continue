@@ -8,13 +8,18 @@ export class TcpMessenger<
   FromProtocol extends IProtocol,
 > implements IMessenger<ToProtocol, FromProtocol>
 {
+  //tcp服务器监听的端口和ip
   private port: number = 3000;
   private host: string = "127.0.0.1";
   private socket: net.Socket | null = null;
 
+  //typeListeners：存储基于消息类型的监听器。
+  //idListeners：存储基于消息 ID 的监听器，用于请求-响应模式。
   typeListeners = new Map<keyof ToProtocol, ((message: Message) => any)[]>();
   idListeners = new Map<string, (message: Message) => any>();
 
+  //消息通过 JSON 格式在客户端和服务器之间传递。
+  //支持消息的类型监听（on 方法）和请求-响应模式（request 方法）。
   constructor() {
     const server = net.createServer((socket) => {
       this.socket = socket;
@@ -47,12 +52,18 @@ export class TcpMessenger<
     this._onErrorHandlers.push(handler);
   }
 
+  //异步消息处理：
+  //通过异步迭代器处理消息响应的流式数据。
+  //提供错误处理机制，用于处理消息处理中的异常。
   public async awaitConnection() {
     while (!this.socket) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
+  //消息分片与拼接：
+  //处理 TCP 数据流中的可能分片（_handleData 方法）。
+  //确保解析完整的 JSON 消息。
   private _handleLine(line: string) {
     try {
       const msg: Message = JSON.parse(line);
